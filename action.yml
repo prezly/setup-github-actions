@@ -1,0 +1,42 @@
+name: 'Setup Github Actions'
+description: 'Setup Github Actions CI environment for Prezly projects'
+inputs:
+  node:
+    description: 'Node version to setup'
+    default: '16'
+  pnpm:
+    description: 'pnpm version to setup'
+    default: '8.4.0'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Node.js v${{ inputs.node }}
+      uses: actions/setup-node@v1
+      if: ${{ inputs.node }}
+      with:
+        node-version: ${{ inputs.node }}
+
+    - name: Setup pnpm v${{ inputs.node }}
+      id: pnpm-setup
+      uses: pnpm/action-setup@v2
+      if: ${{ inputs.pnpm }}
+      with:
+        version: ${{ inputs.pnpm }}
+        run_install: false
+
+    - name: Get pnpm store directory
+      id: pnpm-cache
+      if: ${{ inputs.pnpm }}
+      shell: bash
+      run: |
+        echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+    - uses: actions/cache@v3
+      name: Initialize pnpm cache
+      if: ${{ inputs.pnpm }}
+      with:
+        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-
